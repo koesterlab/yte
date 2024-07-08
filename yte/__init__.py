@@ -19,7 +19,8 @@ def process_yaml(
     # Arguments
     * file_or_str - file object or string to render
     * outfile - output file to write to, if None output is returned as string
-    * variables - variables to be available in the template
+    * variables - dict of variables (must have valid python names) to be available in
+      the template
     * require_use_yte - skip templating if there is no `__use_yte__ = True`
       statement in the top level of the document
     * disable_features - list of features that should be disabled during rendering.
@@ -77,8 +78,15 @@ def process_yaml(
     "If the statement is not present or false, return document unprocessed "
     "(except removing the `__use_yte__: false` statement if present)",
 )
+@plac.opt(
+    "variables",
+    "Path to YAML file with definitions that will be available as Python variables "
+    "when rendering the template Must have a map with keys at the top level, not a list. "
+    "The file can be a YTE template itself (e.g. to build it dynamically from env vars).",
+)
 def cli(
     require_use_yte=False,
+    variables=None,
 ):
     """Process a YAML file given at STDIN with YTE,
     and print the result to STDOUT.
@@ -86,7 +94,20 @@ def cli(
     Note: if nothing is provided at STDIN,
     this will wait forever.
     """
-    process_yaml(sys.stdin, outfile=sys.stdout)
+    if variables is not None:
+        with open(variables, "r") as infile:
+            variables = process_yaml(infile, require_use_yte=require_use_yte)
+            if not isinstance(variables, dict):
+                raise ValueError(
+                    "Given variables file has to contain a map with keys at the top-level."
+                )
+
+    process_yaml(
+        sys.stdin,
+        outfile=sys.stdout,
+        require_use_yte=require_use_yte,
+        variables=variables,
+    )
 
 
 def main():

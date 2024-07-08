@@ -263,6 +263,14 @@ It can be used to process a YTE template from STDIN and prints the rendered vers
 yte < template.yaml > rendered.yaml
 ```
 
+In case your template requires additional variables to be available, you can pass them via another YAML file that has to contain a map of values at the top-level, e.g.
+
+```bash
+yte --variables myvars.yaml < template.yaml > rendered.yaml
+```
+
+Note that the variables file can itself be a template, so that it might contain dynamic content that is decided on based e.g. on environment variables or database access (since there can be any Python code in YTE templates).
+
 ## Comparison with other engines
 
 Lots of template engines are available, for example the famous generic [jinja2](https://jinja.palletsprojects.com).
