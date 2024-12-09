@@ -1,5 +1,7 @@
 import re
+import textwrap
 from yte.context import Context
+from yte.document import Document
 
 from yte.exceptions import YteError
 
@@ -8,7 +10,7 @@ re_if = re.compile(r"^\?if (?P<expr>.+)$")
 re_elif = re.compile(r"^\?elif (?P<expr>.+)$")
 re_else = re.compile(r"^\?else$")
 
-FEATURES = frozenset(["variables", "definitions"])
+FEATURES = frozenset(["variables", "definitions", "templates"])
 
 
 def _process_yaml_value(
@@ -113,6 +115,10 @@ def _process_dict_items(
             if "variables" in disable_features:
                 raise YteError("__variables__ have been disabled", key_context)
             _process_variables(value, variables, key_context)
+        elif key == "__templates__":
+            if "templates" in disable_features:
+                raise YteError("__templates__ have been disabled", key_context)
+            _process_templates(value, variables, key_context, disable_features)
         elif re_for_loop.match(key):
             yield from _process_for_loop(
                 key, value, variables, conditional, key_context, disable_features
@@ -168,6 +174,47 @@ def _process_variables(value, variables, context: Context):
     else:
         raise YteError(
             "__variables__ keyword expects a map of variable names and values", context
+        )
+
+
+def _process_templates(
+    value,
+    variables,
+    context: Context,
+    disable_features: frozenset,
+    signature_re=re.compile("^(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\(.*\)$"),
+):
+    if isinstance(value, dict):
+        for signature, template in value.items():
+            m = signature_re.match(signature)
+            if m is None:
+                raise YteError(f"Invalid template signature: {signature}", context)
+            name = m.group("name")
+
+            def inner(variables):
+                return _process_yaml_value(
+                    template, variables, Context(), disable_features=disable_features
+                )
+
+            code = textwrap.dedent(
+                f"""
+                def {signature}:
+                    variables = locals()
+                    variables["doc"] = Document()
+                    variables["this"] = Document()
+                    return inner(variables)
+                """
+            )
+            _variables = {"inner": inner, "Document": Document}
+
+            exec(code, _variables)
+
+            variables[name] = _variables[name]
+    else:
+        raise YteError(
+            "__templates__ keyword expects a map of template signatures "
+            "(i.e. Python function signatures) and returned valid YTE subdocuments",
+            context,
         )
 
 

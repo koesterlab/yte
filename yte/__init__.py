@@ -23,7 +23,7 @@ def process_yaml(
     * require_use_yte - skip templating if there is no `__use_yte__ = True`
       statement in the top level of the document
     * disable_features - list of features that should be disabled during rendering.
-      Possible values to choose from are ["definitions", "variables"]
+      Possible values to choose from are ["definitions", "variables", "templates"]
     """
     if variables is None:
         variables = dict()
@@ -86,7 +86,7 @@ def cli(
     Note: if nothing is provided at STDIN,
     this will wait forever.
     """
-    process_yaml(sys.stdin, outfile=sys.stdout)
+    process_yaml(sys.stdin, outfile=sys.stdout, require_use_yte=require_use_yte)
 
 
 def main():

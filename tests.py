@@ -274,6 +274,22 @@ def test_conditional_error():
         )
 
 
+def test_templates():
+    result = _process(
+        """
+        __templates__:
+          "foo(a, b, c=1)":
+            ?a:
+              - ?b
+              - ?c
+
+        bar:
+            ?foo("x", "y", c=2)
+        """
+    )
+    assert result == {"bar": {"x": ["y", 2]}}
+
+
 def test_variables():
     result = _process(
         """
