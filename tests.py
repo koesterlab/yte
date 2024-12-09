@@ -283,9 +283,11 @@ def test_variables():
 
         ?foo: 1
         bar: ?bar
+        nesting:
+          ?foo: 1
         """
     )
-    assert result == {"x": 1, "bar": 3}
+    assert result == {"x": 1, "bar": 3, "nesting": {"x": 1}}
 
 
 def test_variables_error():
